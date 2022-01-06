@@ -15,7 +15,7 @@ jq = "^1.2.1"
 black = "^21.12b0"
 
 [tool.poetry.scripts]
-grant-ssh = "aws_robot.cli:grant_ssh_access"
+robot = "aws_robot.cli:robot"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

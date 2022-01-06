@@ -12,6 +12,9 @@ from yaspin import kbi_safe_yaspin
 from yaspin.spinners import Spinners
 
 
+CONFIG_FILE = os.path.expanduser("~/.aws/aws_robot")
+
+
 @dataclasses.dataclass
 class SshConfig:
     profile_name: str
@@ -28,22 +31,22 @@ def get_public_ip() -> str:
         raise RuntimeError("unable to determine public ip")
 
 
-def get_configuration(profile: str) -> SshConfig:
-    config = configparser.ConfigParser()
-    config.read(os.path.expanduser("~/.aws/aws_robot"))
-    if profile not in config:
-        raise RuntimeError("profile not configured")
+def load_profile(profile: str) -> SshConfig:
+    conf = configparser.ConfigParser()
+    conf.read(CONFIG_FILE)
+    if profile not in conf:
+        raise RuntimeError(f"profile '{profile}' is not configured")
     return SshConfig(
         profile,
-        config[profile]["security_group"],
-        int(config[profile]["ssh_port"]),
-        config[profile]["narrative"],
+        conf[profile]["security_group"],
+        int(conf[profile]["ssh_port"]),
+        conf[profile]["narrative"],
     )
 
 
 @kbi_safe_yaspin(Spinners.line, text="revoking access for previous IP", color="red")
 def revoke_access(conf: SshConfig, ip_range):
-    req = f'IpProtocol=tcp,FromPort={conf.ssh_port},ToPort={conf.ssh_port},IpRanges=[{{CidrIp={ip_range},Description="{conf.narrative}"}}]'
+    req = f'IpProtocol=tcp,FromPort={conf.ssh_port},ToPort={conf.ssh_port},IpRanges=[{{CidrIp="{ip_range}",Description="{conf.narrative}"}}]'
     result = subprocess.run(
         [
             "aws",
@@ -120,13 +123,71 @@ def configure_ip_rules(conf: SshConfig, ip_address):
         grant_access(conf, f"{ip_address}/32")
 
 
-@click.command()
-@click.argument("profile")
-def grant_ssh_access(profile: str):
+@click.group()
+def robot():
+    """
+    Manage AWS SSH IP access through a Security Group
+    """
+    pass
+
+
+@robot.command()
+@click.option(
+    "-p",
+    "--profile",
+    "profile",
+    help="The AWS profile that will be used",
+    default="default",
+)
+def grant(profile: str):
+    """
+    Grant SSH access to your current public IP
+    """
     try:
+        profile_conf = load_profile(profile)
         my_ip = get_public_ip()
-        profile_conf = get_configuration(profile)
         configure_ip_rules(profile_conf, my_ip)
         secho("ssh access is granted", fg="green")
     except RuntimeError as e:
         secho(str(e), err=True, fg="red")
+
+
+@robot.command()
+@click.option(
+    "-p",
+    "--profile",
+    "profile",
+    help="The AWS profile that will be used",
+    default="default",
+)
+def config(profile: str):
+    """
+    Create/Update a robot profile
+    """
+    conf = configparser.ConfigParser()
+    conf.read(CONFIG_FILE)
+
+    ssh_port = click.prompt(
+        "What's the SSH port?",
+        default=22 if not conf[profile] else conf[profile]["ssh_port"],
+        type=int,
+    )
+    security_group = click.prompt(
+        "What security group should be modified?",
+        default=conf[profile]["security_group"] if conf[profile] else None,
+        type=str,
+    )
+    description = click.prompt(
+        "What identifier should be used for this rule?",
+        default=conf[profile]["narrative"] if conf[profile] else None,
+        type=str,
+    )
+
+    conf[profile] = {
+        "security_group": security_group,
+        "ssh_port": ssh_port,
+        "narrative": description,
+    }
+    with open(CONFIG_FILE, "w") as f:
+        conf.write(f)
+    secho("configuration updated")
