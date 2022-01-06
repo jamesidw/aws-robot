@@ -169,17 +169,17 @@ def config(profile: str):
 
     ssh_port = click.prompt(
         "What's the SSH port?",
-        default=22 if not conf[profile] else conf[profile]["ssh_port"],
+        default=22 if profile not in conf else conf[profile]["ssh_port"],
         type=int,
     )
     security_group = click.prompt(
         "What security group should be modified?",
-        default=conf[profile]["security_group"] if conf[profile] else None,
+        default=conf[profile]["security_group"] if profile in conf else None,
         type=str,
     )
     description = click.prompt(
         "What identifier should be used for this rule?",
-        default=conf[profile]["narrative"] if conf[profile] else None,
+        default=conf[profile]["narrative"] if profile in conf else None,
         type=str,
     )
 

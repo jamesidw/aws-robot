@@ -22,3 +22,10 @@ Grant your IP access
     robot grant
 
 Use `--help` on any of the commands to see options
+
+Assumptions
+-----------
+
+* You have installed the AWS CLI...hopefully v2 [v1 also works]
+* The profiles(s) you configure will match the AWS profiles
+* The profile(s) you configure should have the region configured
