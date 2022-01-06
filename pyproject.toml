@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "aws-robot"
+version = "0.1.0"
+description = ""
+authors = ["Sidney Wasibani <jamesidw@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.0.3"
+requests = "^2.27.1"
+yaspin = "^2.1.0"
+jq = "^1.2.1"
+
+[tool.poetry.dev-dependencies]
+black = "^21.12b0"
+
+[tool.poetry.scripts]
+grant-ssh = "aws_robot.cli:grant_ssh_access"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
