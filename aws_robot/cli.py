@@ -3,6 +3,7 @@ import dataclasses
 import json
 import os.path
 import subprocess
+from typing import List
 
 import click
 import jq
@@ -42,6 +43,15 @@ def load_profile(profile: str) -> SshConfig:
         int(conf[profile]["ssh_port"]),
         conf[profile]["narrative"],
     )
+
+
+def list_aws_profiles() -> List[str]:
+    result = subprocess.run(
+        ["aws", "configure", "list-profiles"], stdout=subprocess.PIPE
+    )
+    if result.returncode != 0:
+        raise RuntimeError("unable to read AWS settings")
+    return str(result.stdout).split("\n")
 
 
 @kbi_safe_yaspin(Spinners.line, text="revoking access for previous IP", color="red")
@@ -164,6 +174,13 @@ def config(profile: str):
     """
     Create/Update a robot profile
     """
+    available_profiles = list_aws_profiles()
+    if profile not in available_profiles:
+        click.secho(
+            f"there is no matching AWS profile called '{profile}'", err=True, fg="red"
+        )
+        exit(1)
+
     conf = configparser.ConfigParser()
     conf.read(CONFIG_FILE)
 

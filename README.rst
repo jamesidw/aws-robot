@@ -9,7 +9,7 @@ AWS Robot
 Installation
 ------------
 
-    pipx install https://github.com/jamesidw/aws-robot.git
+    pipx install git+https://github.com/jamesidw/aws-robot.git
 
 That's it! There should now be a `robot` command in your path.
 

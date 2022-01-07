@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "aws-robot"
 version = "0.1.0"
-description = ""
+description = "Simple script to manage SSH access on a locked down AWS setup"
 authors = ["Sidney Wasibani <jamesidw@gmail.com>"]
 
 [tool.poetry.dependencies]
