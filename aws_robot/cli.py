@@ -9,7 +9,7 @@ import click
 import jq
 import requests
 from click import secho
-from yaspin import kbi_safe_yaspin
+from yaspin import kbi_safe_yaspin, yaspin
 from yaspin.spinners import Spinners
 
 
@@ -96,30 +96,30 @@ def grant_access(conf: SshConfig, ip_range):
         raise RuntimeError("unable to update AWS settings")
 
 
-@kbi_safe_yaspin(Spinners.line, text="loading AWS settings", color="blue")
 def configure_ip_rules(conf: SshConfig, ip_address):
-    result = subprocess.run(
-        [
-            "aws",
-            "--profile",
-            conf.profile_name,
-            "ec2",
-            "describe-security-groups",
-            "--group-ids",
-            conf.security_group_id,
-        ],
-        stdout=subprocess.PIPE,
-    )
-    if result.returncode != 0:
-        raise RuntimeError("unable to fetch current AWS settings")
-    approved_ips = (
-        jq.compile(
-            f".SecurityGroups[0].IpPermissions[]|select(.FromPort == {conf.ssh_port})|.IpRanges[]|select(.Description "
-            f'== "{conf.narrative}")|.CidrIp '
+    with yaspin(Spinners.line, text="loading AWS settings", color="blue"):
+        result = subprocess.run(
+            [
+                "aws",
+                "--profile",
+                conf.profile_name,
+                "ec2",
+                "describe-security-groups",
+                "--group-ids",
+                conf.security_group_id,
+            ],
+            stdout=subprocess.PIPE,
         )
-        .input(json.loads(result.stdout))
-        .all()
-    )
+        if result.returncode != 0:
+            raise RuntimeError("unable to fetch current AWS settings")
+        approved_ips = (
+            jq.compile(
+                f".SecurityGroups[0].IpPermissions[]|select(.FromPort == {conf.ssh_port})|.IpRanges[]|select(.Description "
+                f'== "{conf.narrative}")|.CidrIp '
+            )
+            .input(json.loads(result.stdout))
+            .all()
+        )
     already_approved = f"{ip_address}/32" in approved_ips
     if already_approved and len(approved_ips) == 1:
         return
