@@ -19,7 +19,7 @@ CONFIG_FILE = os.path.expanduser("~/.aws/aws_robot")
 @dataclasses.dataclass
 class SshConfig:
     profile_name: str
-    security_group_id: str
+    security_group_id: List[str]
     ssh_port: int
     narrative: str
 
@@ -33,13 +33,13 @@ def get_public_ip() -> str:
 
 
 def load_profile(profile: str) -> SshConfig:
-    conf = configparser.ConfigParser()
+    conf = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split(',')]})
     conf.read(CONFIG_FILE)
     if profile not in conf:
         raise RuntimeError(f"profile '{profile}' is not configured")
     return SshConfig(
         profile,
-        conf[profile]["security_group"],
+        conf[profile].getlist("security_group"),
         int(conf[profile]["ssh_port"]),
         conf[profile]["narrative"],
     )
@@ -51,7 +51,7 @@ def list_aws_profiles() -> List[str]:
     )
     if result.returncode != 0:
         raise RuntimeError("unable to read AWS settings")
-    return str(result.stdout).split("\n")
+    return [i.decode('utf-8') for i in result.stdout.splitlines()]
 
 
 @kbi_safe_yaspin(Spinners.line, text="revoking access for previous IP", color="red")
@@ -179,6 +179,7 @@ def config(profile: str):
         click.secho(
             f"there is no matching AWS profile called '{profile}'", err=True, fg="red"
         )
+        print(available_profiles, profile)
         exit(1)
 
     conf = configparser.ConfigParser()
