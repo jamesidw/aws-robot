@@ -19,7 +19,7 @@ CONFIG_FILE = os.path.expanduser("~/.aws/aws_robot")
 @dataclasses.dataclass
 class SshConfig:
     profile_name: str
-    security_group_id: List[str]
+    security_group_id: str
     ssh_port: int
     narrative: str
 
@@ -39,9 +39,9 @@ def load_profile(profile: str) -> SshConfig:
         raise RuntimeError(f"profile '{profile}' is not configured")
     return SshConfig(
         profile,
-        conf[profile].getlist("security_group"),
-        int(conf[profile]["ssh_port"]),
-        conf[profile]["narrative"],
+        conf[profile].get("security_group"),
+        int(conf[profile].get("ssh_port")),
+        conf[profile].get("narrative"),
     )
 
 
